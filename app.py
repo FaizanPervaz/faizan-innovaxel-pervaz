@@ -36,5 +36,27 @@ def shorten_url():
         'shortCode': short_code
     }), 201
 
+@app.route('/shorten/<short_code>', methods=['GET'])
+def get_original_url(short_code):
+    cur = mysql.connection.cursor()
+    cur.execute("SELECT original_url, access_count FROM urls WHERE short_code = %s", (short_code,))
+    result = cur.fetchone()
+    
+    if not result:
+        return jsonify({'error': 'Short URL not found'}), 404
+
+    original_url, access_count = result
+
+    # Increment access count
+    cur.execute("UPDATE urls SET access_count = access_count + 1 WHERE short_code = %s", (short_code,))
+    mysql.connection.commit()
+    cur.close()
+
+    return jsonify({
+        'shortCode': short_code,
+        'original_url': original_url,
+        'accessCount': access_count + 1
+    }), 200
+
 if __name__ == '__main__':
     app.run(debug=True)
