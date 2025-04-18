@@ -25,7 +25,11 @@ def shorten_url():
     if not original_url:
         return jsonify({'error': 'URL is required'}), 400
 
-    # Generating short code
+    # Ensure the URL has the correct prefix (http or https)
+    if not original_url.startswith('http://') and not original_url.startswith('https://'):
+        original_url = 'http://' + original_url
+
+    # Generate short code
     short_code = ''.join(random.choices(string.ascii_letters + string.digits, k=6))
 
     # Save to DB
