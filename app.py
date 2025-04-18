@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, jsonify
 from flask_mysqldb import MySQL
 import config
 import string, random
+from flask import redirect
 
 
 app = Flask(__name__)
@@ -35,7 +36,32 @@ def shorten_url():
         'url': original_url,
         'shortCode': short_code
     }), 201
+    
+@app.route('/shorten/<short_code>', methods=['PUT'])
+def update_url(short_code):
+    data = request.get_json()
+    new_url = data.get('url')
 
+    if not new_url:
+        return jsonify({'error': 'New URL is required'}), 400
+
+    # Check if the short code exists
+    cur = mysql.connection.cursor()
+    cur.execute("SELECT * FROM urls WHERE short_code = %s", (short_code,))
+    if not cur.fetchone():
+        return jsonify({'error': 'Short URL not found'}), 404
+
+    # Update the original URL
+    cur.execute("UPDATE urls SET original_url = %s WHERE short_code = %s", (new_url, short_code))
+    mysql.connection.commit()
+    cur.close()
+
+    return jsonify({
+        'message': 'URL updated successfully',
+        'shortCode': short_code,
+        'new_url': new_url
+    }), 200
+    
 @app.route('/shorten/<short_code>', methods=['GET'])
 def get_original_url(short_code):
     cur = mysql.connection.cursor()
@@ -57,6 +83,51 @@ def get_original_url(short_code):
         'original_url': original_url,
         'accessCount': access_count + 1
     }), 200
+
+@app.route('/<short_code>')
+def redirect_to_original(short_code):
+    cur = mysql.connection.cursor()
+    cur.execute("SELECT original_url FROM urls WHERE short_code = %s", (short_code,))
+    result = cur.fetchone()
+    
+    if not result:
+        return jsonify({'error': 'Short URL not found'}), 404
+
+    original_url = result[0]
+
+    # Optional: update access count
+    cur.execute("UPDATE urls SET access_count = access_count + 1 WHERE short_code = %s", (short_code,))
+    mysql.connection.commit()
+    cur.close()
+
+    return redirect(original_url)
+
+@app.route('/shorten/<short_code>', methods=['DELETE'])
+def delete_url(short_code):
+    # Check if the short code exists
+    cur = mysql.connection.cursor()
+    cur.execute("SELECT * FROM urls WHERE short_code = %s", (short_code,))
+    if not cur.fetchone():
+        return jsonify({'error': 'Short URL not found'}), 404
+
+    # Delete the short URL
+    cur.execute("DELETE FROM urls WHERE short_code = %s", (short_code,))
+    mysql.connection.commit()
+    cur.close()
+
+    return jsonify({'message': 'Short URL deleted successfully'}), 200
+
+@app.route('/shorten/<short_code>/stats', methods=['GET'])
+def url_stats(short_code):
+    cur = mysql.connection.cursor()
+    cur.execute("SELECT access_count FROM urls WHERE short_code = %s", (short_code,))
+    result = cur.fetchone()
+
+    if not result:
+        return jsonify({'error': 'Short URL not found'}), 404
+
+    access_count = result[0]
+    return jsonify({'shortCode': short_code, 'accessCount': access_count}), 200
 
 if __name__ == '__main__':
     app.run(debug=True)
