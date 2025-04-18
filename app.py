@@ -1,9 +1,7 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, redirect
 from flask_mysqldb import MySQL
 import config
 import string, random
-from flask import redirect
-
 
 app = Flask(__name__)
 
@@ -23,7 +21,7 @@ def shorten_url():
     if not original_url:
         return jsonify({'error': 'URL is required'}), 400
 
-    # Generate short code
+    # Generating short code
     short_code = ''.join(random.choices(string.ascii_letters + string.digits, k=6))
 
     # Save to DB
@@ -45,13 +43,13 @@ def update_url(short_code):
     if not new_url:
         return jsonify({'error': 'New URL is required'}), 400
 
-    # Check if the short code exists
+    # Checking from DB if the short code exists
     cur = mysql.connection.cursor()
     cur.execute("SELECT * FROM urls WHERE short_code = %s", (short_code,))
     if not cur.fetchone():
         return jsonify({'error': 'Short URL not found'}), 404
 
-    # Update the original URL
+    # Updating the original URL
     cur.execute("UPDATE urls SET original_url = %s WHERE short_code = %s", (new_url, short_code))
     mysql.connection.commit()
     cur.close()
@@ -95,7 +93,7 @@ def redirect_to_original(short_code):
 
     original_url = result[0]
 
-    # Optional: update access count
+    # Updating Access Count
     cur.execute("UPDATE urls SET access_count = access_count + 1 WHERE short_code = %s", (short_code,))
     mysql.connection.commit()
     cur.close()
