@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>URL Shortener</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 30px;
+        }
+        input, button {
+            padding: 10px;
+            font-size: 16px;
+            margin: 10px 0;
+            width: 300px;
+        }
+        .output {
+            margin-top: 20px;
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>URL Shortener</h1>
+    <form id="shortenForm">
+        <input type="text" id="urlInput" placeholder="Enter your URL" required />
+        <button type="submit">Shorten URL</button>
+    </form>
+
+    <div class="output" id="result"></div>
+
+    <script>
+        document.getElementById("shortenForm").addEventListener("submit", async function (e) {
+            e.preventDefault();
+            const url = document.getElementById("urlInput").value;
+
+            const response = await fetch("http://127.0.0.1:5000/shorten", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ url: url })
+            });
+
+            const data = await response.json();
+
+            if (data.shortCode) {
+                document.getElementById("result").innerHTML = `
+                    <p>Original URL: ${data.url}</p>
+                    <p>Shortened URL: <a href="http://127.0.0.1:5000/${data.shortCode}" target="_blank">http://127.0.0.1:5000/${data.shortCode}</a></p>
+                `;
+            } else {
+                document.getElementById("result").innerHTML = `<p>Error: ${data.error}</p>`;
+            }
+        });
+    </script>
+
+</body>
+</html>
