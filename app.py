@@ -13,6 +13,10 @@ app.config['MYSQL_DB'] = config.MYSQL_DB
 
 mysql = MySQL(app)
 
+@app.route('/')
+def home():
+    return render_template('index.html')
+
 @app.route('/shorten', methods=['POST'])
 def shorten_url():
     data = request.get_json()
